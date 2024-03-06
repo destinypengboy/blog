@@ -9,16 +9,18 @@
 <script setup>
 import { api } from 'boot/axios';
 import Item from '../components/Item.vue';
-import { ref,watch,onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
+import { Octokit } from "@octokit/core";
+import config from 'app/config';
 const postList = ref([]);
 const $store = useStore()
 const router = useRouter()
 const route = useRoute();
 const $q = useQuasar()
-
+const octokit = new Octokit({ auth: `${window.atob(config.accessToken)}` });
 
 
 onMounted(() => {
@@ -26,23 +28,36 @@ onMounted(() => {
 })
 
 watch(
-  () => router.currentRoute.value.path,(toPath) => {
+  () => router.currentRoute.value.path, (toPath) => {
     getIssueList();
-  },{immediate: true,deep: true}
+  }, { immediate: true, deep: true }
 )
 
-function getIssueList() {
-  console.log($store.state.example.repositorySlug);
+async function getIssueList() {
+
   $q.loading.show({ delay: 250 });
-  let url = `/search/issues?q=+repo:${$store.state.example.repositorySlug}+state:open`;
-  if (route.query.label) {
-    url += `+label:${route.query.label}`;
-  }
-  api.get(url)
-    .then((res) => {
-      postList.value = res.data.items;
-      $q.loading.hide();
-    });
+  // let url = `/search/issues?q=+repo:${$store.state.example.repositorySlug}+state:open`;
+  // if (route.query.label) {
+  //   url += `+label:${route.query.label}`;
+  // }
+
+  const respose =  await octokit.request('GET /repos/{owner}/{repo}/issues', {
+    owner: config.username,
+    repo: config.repository,
+    headers: {
+      'X-GitHub-Api-Version': '2022-11-28',
+      Accept: 'application/vnd.github.full+json'
+    },
+    labels: route.query.label
+  })
+  console.log(respose);
+  postList.value = respose.data;
+  $q.loading.hide();
+  // api.get(url)
+  //   .then((res) => {
+  //     postList.value = res.data.items;
+  //     $q.loading.hide();
+  //   });
 };
 </script>
 

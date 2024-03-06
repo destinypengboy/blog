@@ -9,7 +9,7 @@
         </q-item-section>
         <q-item-section>
           <q-item-label lines="1">
-            <span class="text-weight-bold">{{ comment.user.login }}</span>  
+            <span class="text-weight-bold">{{ comment.user.login }}</span>
             <span class="text-gray-light"> {{ timeAgo(comment.updated_at) }}</span>
           </q-item-label>
           <q-item-label v-html="comment.body_html" class="q-pt-sm"></q-item-label>
@@ -29,25 +29,34 @@
 import { openURL } from 'quasar';
 import { format } from 'timeago.js';
 import { api } from 'boot/axios';
-import { ref,onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router';
 import { useStore } from 'vuex'
+import { Octokit } from "@octokit/core";
+import config from 'app/config';
 const router = useRouter()
 const route = useRoute();
 const $store = useStore()
 const $q = useQuasar()
 const comments = ref([]);
 const addCommentUrl = ref(`https://github.com/${$store.state.example.repositorySlug}/issues/${route.params.id}/#new_comment_field`)
+const octokit = new Octokit({ auth: `${window.atob(config.accessToken)}` });
 
 function timeAgo(d) {
   return format(d);
 };
-function getComments() {
-  api.get(`/repos/${$store.state.example.repositorySlug}/issues/${route.params.id}/comments`)
-    .then((res) => {
-      comments.value = res.data;
-    });
+async function getComments() {
+  const resonse = await octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}/comments', {
+    owner: config.username,
+    repo: config.repository,
+    issue_number: route.params.id,
+    headers: {
+      'X-GitHub-Api-Version': '2022-11-28',
+      Accept: 'application/vnd.github.full+json',
+    }
+  })
+  comments.value = resonse.data;
 };
 function goAddComment() {
   openURL(addCommentUrl.value);

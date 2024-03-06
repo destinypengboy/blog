@@ -26,23 +26,33 @@ import { ref } from 'vue';
 import { useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router';
 import { useStore } from 'vuex'
+import { Octokit } from "@octokit/core";
+import config from 'app/config';
 const router = useRouter()
 const route = useRoute();
 const $store = useStore()
 const $q = useQuasar()
 const post = ref({})
+const octokit = new Octokit({ auth: `${window.atob(config.accessToken)}` });
 
 $q.loading.show({ delay: 250 });
 getIssue();
 function timeAgo(d) {
   return format(d);
 };
-function getIssue() {
-  api.get(`/repos/${$store.state.example.repositorySlug}/issues/${route.params.id}`)
-    .then((res) => {
-      post.value = res.data
-      $q.loading.hide();
-    });
+async function getIssue() {
+  const response = await octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}', {
+    owner: config.username,
+    repo: config.repository,
+    issue_number: route.params.id,
+    headers: {
+      'X-GitHub-Api-Version': '2022-11-28',
+      Accept: 'application/vnd.github.full+json',
+    }
+  })
+  console.log(response);
+  post.value = response.data
+  $q.loading.hide();
 };
 function chipClickHandler(labelName) {
   router.push(`/?label=${labelName}`);

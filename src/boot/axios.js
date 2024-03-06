@@ -8,12 +8,12 @@ import config from 'app/config';
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-console.log(config.accessToken);
 const api = axios.create({
   baseURL: 'https://api.github.com',
   headers: {
-    Accept: 'application/vnd.github.v3.html',
-    Authorization: `token ${window.atob(config.accessToken)}`,
+    Accept: 'application/vnd.github+json',
+    Authorization: `Bearer ${window.atob(config.accessToken)}`,
+    'User-Agent': 'blog-app',
   },
 });
 
